@@ -1,0 +1,33 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Release Please
+        id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+      - name: Checkout
+        if: ${{ steps.release.outputs.release_created }}
+        uses: actions/checkout@v7
+
+      - name: Move major tag
+        if: ${{ steps.release.outputs.release_created }}
+        env:
+          MAJOR_TAG: v${{ steps.release.outputs.major }}
+        run: |
+          git tag -f "$MAJOR_TAG"
+          git push origin "$MAJOR_TAG" --force

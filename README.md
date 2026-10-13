@@ -96,3 +96,30 @@ jobs:
 | [`node-setup`](.github/actions/node-setup/action.yml)           | composite action  | Setup Node.js and install dependencies (`npm ci`)          |
 | [`node-checks`](.github/actions/node-checks/action.yml)         | composite action  | Run commitlint, prettier, lint, typecheck, tests and build |
 | [`node-checks-ci`](.github/workflows/node-checks-ci.yml)        | reusable workflow | Ready-to-use job: checkout + `node-setup` + `node-checks`  |
+
+# Releasing a new version
+
+Base on [semantic versioning](https://semver.org).
+
+We have two kinds of tags:
+
+- **Exact tags** (`v1.0.0`, `v1.2.3`)
+- **Major tags** (`v1`, `v2`) always point to the latest release of that major version. Projects use these (`@v1`).
+
+**You don't create tags manually.** Releases are automated with [release-please](https://github.com/googleapis/release-please). The version is calculated from [Conventional Commits](https://www.conventionalcommits.org) messages (already enforced by commitlint):
+
+| Commit message                              | Release          |
+| ------------------------------------------- | ---------------- |
+| `fix: ...`                                  | patch (`v1.0.1`) |
+| `feat: ...`                                 | minor (`v1.1.0`) |
+| `feat!: ...` or a `BREAKING CHANGE:` footer | major (`v2.0.0`) |
+| `chore:`, `docs:`, `ci:`, `refactor:`, ...  | no release       |
+
+How it works:
+
+1. Merge PR to `main`.
+2. The [`_release.yml`](.github/workflows/_release.yml) opens (or updates) a release PR with the next version and a generated `CHANGELOG.md`.
+3. A maintainer merges the release PR when it's time to release.
+4. The workflow then creates the `vX.Y.Z` tag and GitHub Release, and moves the major tag (`vX`) to it.
+
+For a major release, also change the internal `@v1` references in [`node-checks-ci.yml`](.github/workflows/node-checks-ci.yml) and the examples above to `@v2` in the release PR.
