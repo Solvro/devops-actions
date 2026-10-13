@@ -1,0 +1,17 @@
+name: Github Checkout
+
+description: Checkout repo with correct featch depth
+
+inputs:
+  fetch-depth:
+    description: Git history depth (default 1, set 0 for commitlint)
+    required: false
+    default: "1"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v7
+      with:
+        fetch-depth: ${{ inputs.fetch-depth }}

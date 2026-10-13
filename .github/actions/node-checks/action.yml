@@ -1,0 +1,72 @@
+name: Node Checks
+
+description: Run commitlint, prettier, lint, typecheck, tests and build in a Node.js project. Requires checked out repository (fetch-depth 0 for commitlint) and installed dependencies.
+
+inputs:
+  should-run-commitlint:
+    description: Check commit messages with commitlint (pull_request and merge_group only)
+    required: false
+    default: "true"
+
+  should-run-prettier:
+    description: Run `npm run format:check`
+    required: false
+    default: "true"
+
+  should-run-lint:
+    description: Run `npm run lint`
+    required: false
+    default: "true"
+
+  should-run-typecheck:
+    description: Run `npm run typecheck`
+    required: false
+    default: "true"
+
+  should-run-tests:
+    description: Run `npm test`
+    required: false
+    default: "true"
+
+  should-run-build:
+    description: Run `npm run build`
+    required: false
+    default: "true"
+
+runs:
+  using: "composite"
+
+  steps:
+    - name: Check commit names
+      shell: bash
+      if: inputs.should-run-commitlint == 'true' && !cancelled()
+        && (github.event_name == 'pull_request' || github.event_name == 'merge_group')
+      env:
+        FROM_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+        TO_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}
+      run: npx commitlint --from "$FROM_SHA" --to "$TO_SHA" --verbose
+
+    - name: Run prettier
+      shell: bash
+      if: inputs.should-run-prettier == 'true' && !cancelled()
+      run: npm run format:check
+
+    - name: Run lint
+      shell: bash
+      if: inputs.should-run-lint == 'true' && !cancelled()
+      run: npm run lint
+
+    - name: Check types
+      shell: bash
+      if: inputs.should-run-typecheck == 'true' && !cancelled()
+      run: npm run typecheck
+
+    - name: Run tests
+      shell: bash
+      if: inputs.should-run-tests == 'true' && !cancelled()
+      run: npm test
+
+    - name: Build
+      shell: bash
+      if: inputs.should-run-build == 'true' && !cancelled()
+      run: npm run build

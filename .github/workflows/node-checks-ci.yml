@@ -1,0 +1,62 @@
+name: Node.js Checks CI
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: Node.js version (default 26)
+        type: string
+        required: false
+        default: "26"
+
+      should-run-commitlint:
+        type: boolean
+        default: true
+
+      should-run-prettier:
+        type: boolean
+        default: true
+
+      should-run-lint:
+        type: boolean
+        default: true
+
+      should-run-typecheck:
+        type: boolean
+        default: true
+
+      should-run-tests:
+        type: boolean
+        default: true
+
+      should-run-build:
+        type: boolean
+        default: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: Solvro/devops-actions/.github/actions/github-checkout@v1
+        with:
+          fetch-depth: ${{ inputs.should-run-commitlint && (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '0' || '1' }}
+
+      - name: Node setup
+        uses: Solvro/devops-actions/.github/actions/node-setup@v1
+        with:
+          node-version: ${{ inputs.node-version }}
+
+      - name: Node checks
+        uses: Solvro/devops-actions/.github/actions/node-checks@v1
+        with:
+          should-run-commitlint: ${{ inputs.should-run-commitlint }}
+          should-run-prettier: ${{ inputs.should-run-prettier }}
+          should-run-lint: ${{ inputs.should-run-lint }}
+          should-run-typecheck: ${{ inputs.should-run-typecheck }}
+          should-run-tests: ${{ inputs.should-run-tests }}
+          should-run-build: ${{ inputs.should-run-build }}
