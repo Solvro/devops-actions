@@ -1,125 +1,86 @@
-# Solvro DevOps Actions
+# Solvro Devops Actions
 
-Shared GitHub Actions and reusable workflows for Solvro projects.
+The repository's purpose is to provide reusable workflows and composite actions for Solvro projects' CI/CD.
 
-## Action or workflow?
+Two types of components are defined in this project:
 
-- **Reusable workflow** runs as a separate job on its own runner. Use it when your project needs nothing beyond Node.js (frontend, libraries).
-- **Composite actions** run as steps inside your own job, on the same runner. Use them when your project needs extra setup, e.g. database service or environment variables for tests (AdonisJS backend).
+| Component         | Runner (machine)             | Purpose                         |
+| ----------------- | ---------------------------- | ------------------------------- |
+| Composite Action  | runs on caller's job runner  | a building block of another job |
+| Reusable Workflow | has its own jobs and runners | entire pipeline                 |
 
-## Use workflow example
+# Examples
 
-```yaml
-name: CI
+## Composite action example
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-  merge_group:
+This example CI is built using project's composite actions.
 
-jobs:
-  lint-test:
-    permissions:
-      contents: read
+CI flow:
 
-    uses: Solvro/devops-actions/.github/workflows/node-checks-ci.yml@v1
-    with:
-      should-run-build: false
-```
-
-## Use actions example
-
-Example for AdonisJS backend that needs PostgreSQL for tests:
+- checkout with entire commit history
+- setting up NodeJS on the runner
+- running checks (without commitlint and building the project)
 
 ```yaml
-name: CI
+steps:
+    - name: Checkout
+       uses: Solvro/devops-actions/.github/actions/github-checkout@v1
+       with:
+         fetch-depth: 0
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-  merge_group:
+    - name: Setup Node.js
+      uses: Solvro/devops-actions/.github/actions/node-setup@v1
 
-jobs:
-  lint-test:
-    runs-on: ubuntu-latest
+    - name: Run migrations
+      run: node ace migration:run --force
 
-    permissions:
-      contents: read
-
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: app
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    env:
-      DB_HOST: localhost
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      DB_DATABASE: app
-
-    steps:
-      - name: Checkout
-        uses: Solvro/devops-actions/.github/actions/github-checkout@v1
-        with:
-          fetch-depth: 0 # required for commitlint
-
-      - name: Setup Node.js
-        uses: Solvro/devops-actions/.github/actions/node-setup@v1
-
-      - name: Run migrations
-        run: node ace migration:run --force
-
-      - name: Node checks
-        uses: Solvro/devops-actions/.github/actions/node-checks@v1
-        with:
-          should-run-build: false
+    - name: Node checks
+      uses: Solvro/devops-actions/.github/actions/node-checks@v1
+      with:
+        should-run-commitlint: false
+        should-run-build: false
 ```
 
-# Actions and workflows list
+## Use reusable workflow example
 
-| Name                                                            | Type              | Description                                                |
-| --------------------------------------------------------------- | ----------------- | ---------------------------------------------------------- |
-| [`github-checkout`](.github/actions/github-checkout/action.yml) | composite action  | Checkout repo with correct SHA for different triggers      |
-| [`node-setup`](.github/actions/node-setup/action.yml)           | composite action  | Setup Node.js and install dependencies (`npm ci`)          |
-| [`node-checks`](.github/actions/node-checks/action.yml)         | composite action  | Run commitlint, prettier, lint, typecheck, tests and build |
-| [`node-checks-ci`](.github/workflows/node-checks-ci.yml)        | reusable workflow | Ready-to-use job: checkout + `node-setup` + `node-checks`  |
+Rember that workflows creates its own runners, one for each job.
 
-# Releasing a new version
+The example yaml code does the same thing as example for composite actions.
 
-Base on [semantic versioning](https://semver.org).
+```yaml
+uses: Solvro/devops-actions/.github/workflows/node-checks-ci.yml@v1
+with:
+    should-run-commitlint: false
+        should-run-build: false
+```
 
-We have two kinds of tags:
+# Components
 
-- **Exact tags** (`v1.0.0`, `v1.2.3`)
-- **Major tags** (`v1`, `v2`) always point to the latest release of that major version. Projects use these (`@v1`).
+## Composite Acitons
 
-**You don't create tags manually.** Releases are automated with [release-please](https://github.com/googleapis/release-please). The version is calculated from [Conventional Commits](https://www.conventionalcommits.org) messages (already enforced by commitlint):
+| Name            | Path to use                                              | Purpose                       |
+| --------------- | -------------------------------------------------------- | ----------------------------- |
+| github-checkout | Solvro/devops-actions/.github/actions/github-checkout@v1 | Checkout with depth param     |
+| node-setup      | Solvro/devops-actions/.github/actions/node-setup@v1      | Set up NodeJS project         |
+| node-ckecks     | Solvro/devops-actions/.github/actions/node-checks@v1     | Run checks for NodeJS project |
 
-| Commit message                              | Release          |
-| ------------------------------------------- | ---------------- |
-| `fix: ...`                                  | patch (`v1.0.1`) |
-| `feat: ...`                                 | minor (`v1.1.0`) |
-| `feat!: ...` or a `BREAKING CHANGE:` footer | major (`v2.0.0`) |
-| `chore:`, `docs:`, `ci:`, `refactor:`, ...  | no release       |
+## Reusable Workflows
 
-How it works:
+| Name           | Path to use                                                   | Purpose               |
+| -------------- | ------------------------------------------------------------- | --------------------- |
+| node-checks-ci | Solvro/devops-actions/.github/workflows/node-checks-ci.yml@v1 | CI for NodeJS project |
 
-1. Merge PR to `main`.
-2. The [`_release.yml`](.github/workflows/_release.yml) opens (or updates) a release PR with the next version and a generated `CHANGELOG.md`.
-3. A maintainer merges the release PR when it's time to release.
-4. The workflow then creates the `vX.Y.Z` tag and GitHub Release, and moves the major tag (`vX`) to it.
+# Versioning
 
-For a major release, also change the internal `@v1` references in [`node-checks-ci.yml`](.github/workflows/node-checks-ci.yml) and the examples above to `@v2` in the release PR.
+For versioning [Google's release automation tool](https://github.com/googleapis/release-please-action) is used.
+
+## How does it work?
+
+On every push to main the tool checks for specific commit messages and creates or updates release PR with bumped version.
+
+- `fix:` → patch (`1.0.1`)
+- `feat:` → minor (`1.1.0`)
+- `feat!:` → major (`2.0.0`)
+- `chore:` / `docs:` → no new version
+
+Once we merge the release PR, the project gets version update.
