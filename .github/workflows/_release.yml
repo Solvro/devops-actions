@@ -12,6 +12,10 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
 
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      major: ${{ steps.release.outputs.major }}
+
     steps:
       - name: Release Please
         id: release
@@ -20,14 +24,24 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
+  smoke-tests:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    uses: ./.github/workflows/node-checks-ci.yml
+    with:
+      working-directory: mock_projects/node
+      should-run-commitlint: false
+
+  move-major-tag:
+    needs: [release-please, smoke-tests]
+    runs-on: ubuntu-latest
+    steps:
       - name: Checkout
-        if: ${{ steps.release.outputs.release_created }}
         uses: actions/checkout@v7
 
       - name: Move major tag
-        if: ${{ steps.release.outputs.release_created }}
         env:
-          MAJOR_TAG: v${{ steps.release.outputs.major }}
+          MAJOR_TAG: v${{ needs.release-please.outputs.major }}
         run: |
           git tag -f "$MAJOR_TAG"
           git push origin "$MAJOR_TAG" --force
