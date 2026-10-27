@@ -9,6 +9,12 @@ on:
         required: false
         default: "26"
 
+      working-directory:
+        description: Directory with package.json
+        type: string
+        required: false
+        default: "."
+
       should-run-commitlint:
         type: boolean
         default: true
@@ -50,10 +56,12 @@ jobs:
         uses: Solvro/devops-actions/.github/actions/node-setup@v1
         with:
           node-version: ${{ inputs.node-version }}
+          working-directory: ${{ inputs.working-directory }}
 
       - name: Node checks
         uses: Solvro/devops-actions/.github/actions/node-checks@v1
         with:
+          working-directory: ${{ inputs.working-directory }}
           should-run-commitlint: ${{ inputs.should-run-commitlint }}
           should-run-prettier: ${{ inputs.should-run-prettier }}
           should-run-lint: ${{ inputs.should-run-lint }}
