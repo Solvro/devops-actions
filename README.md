@@ -76,11 +76,11 @@ For versioning [Google's release automation tool](https://github.com/googleapis/
 
 ## How does it work?
 
-On every push to main the tool checks for specific commit messages and creates or updates release PR with bumped version.
+On every push to main branch the tool checks for specific commit messages and creates or updates release PR with bumped version.
 
 - `fix:` → patch (`1.0.1`)
 - `feat:` → minor (`1.1.0`)
 - `feat!:` → major (`2.0.0`)
 - `chore:` / `docs:` → no new version
 
-Once we merge the release PR, the project gets version update.
+Once the release PR is merged, \_release.yml CI script created new version tag and runs smoke tests. If they pass the major tag (v1) moves to the newest version.
