@@ -70,17 +70,21 @@ with:
 | -------------- | ------------------------------------------------------------- | --------------------- |
 | node-checks-ci | Solvro/devops-actions/.github/workflows/node-checks-ci.yml@v1 | CI for NodeJS project |
 
-# Versioning
+# Versioning and smoke tests
 
 For versioning [Google's release automation tool](https://github.com/googleapis/release-please-action) is used.
 
 ## How does it work?
 
-On every push to main branch the tool checks for specific commit messages and creates or updates release PR with bumped version.
+Worfklow `_test_and_release.yml` contains 3 jobs
 
-- `fix:` → patch (`1.0.1`)
-- `feat:` → minor (`1.1.0`)
-- `feat!:` → major (`2.0.0`)
-- `chore:` / `docs:` → no new version
+1. Release Please creates or updates the release PR with a bumped version
+   - `fix:` → patch (`1.0.1`)
+   - `feat:` → minor (`1.1.0`)
+   - `feat!:` → major (`2.0.0`)
+   - `chore:` / `docs:` → no new version
 
-Once the release PR is merged, \_release.yml CI script created new version tag and runs smoke tests. If they pass the major tag (v1) moves to the newest version.
+2. Smoke tests on mock projects
+3. If a release PR is merged and smoke tests pass, the major tag (v1) is moved to the newest version
+
+On pull request to main only smoke tests are ran, while on push to main all 3 jobs are ran.
