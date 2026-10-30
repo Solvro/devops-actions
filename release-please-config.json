@@ -3,8 +3,7 @@
   "packages": {
     ".": {
       "release-type": "simple",
-      "include-component-in-tag": false,
-      "extra-files": [".github/workflows/node-checks-ci.yml"]
+      "include-component-in-tag": false
     }
   }
 }
